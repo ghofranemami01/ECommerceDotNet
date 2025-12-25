@@ -1,0 +1,109 @@
+@model IEnumerable<WebApplication2.Models.Review>
+
+@{
+    ViewData["Title"] = "Modération des Avis";
+}
+
+<h1 class="mb-4">Modération des Avis</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">
+        Aucun avis à modérer pour le moment.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Produit</th>
+                    <th>Utilisateur</th>
+                    <th>Note</th>
+                    <th>Commentaire</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var review in Model)
+                {
+                    <tr class="@(review.IsApproved ? "" : "table-warning")">
+                        <td>@review.Product?.Name</td>
+                        <td>@review.UserName</td>
+
+                        <td>
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="@(i <= review.Rating ? "fas" : "far") fa-star text-warning"></i>
+                            }
+                        <span class="ms-1">(@review.Rating/5)</span>
+                    </td>
+
+                    <td>
+                        @(string.IsNullOrWhiteSpace(review.Comment)
+                                            ? "Aucun commentaire"
+                                            : review.Comment)
+                </td>
+
+                        <td>@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+
+                        <td>
+                    @if (review.IsApproved)
+                            {
+                                <span class="badge bg-success">Approuvé</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">En attente</span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (!review.IsApproved)
+                            {
+                                <form asp-controller="Review"
+                                      asp-action="Approve"
+                                      asp-route-id="@review.ReviewId"
+                                      method="post"
+                                      class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-success mb-1">
+                                        <i class="fas fa-check"></i> Approuver
+                                    </button>
+                                </form>
+
+                                <form asp-controller="Review"
+                                      asp-action="Reject"
+                                      asp-route-id="@review.ReviewId"
+                                      method="post"
+                                      class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            class="btn btn-sm btn-danger mb-1"
+                                            onclick="return confirm('Êtes-vous sûr de vouloir rejeter cet avis ?');">
+                                        <i class="fas fa-times"></i> Rejeter
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

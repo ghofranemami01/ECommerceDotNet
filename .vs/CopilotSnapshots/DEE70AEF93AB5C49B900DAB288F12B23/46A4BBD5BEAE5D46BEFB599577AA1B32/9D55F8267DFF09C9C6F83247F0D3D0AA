@@ -1,0 +1,352 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using WebApplication2.Models;
+using WebApplication2.Models.Help;
+using WebApplication2.Models.Repositories;
+using WebApplication2.ViewModels;
+using WebApplication2.Services;
+
+namespace WebApplication2.Controllers
+{
+    public class PanierController : Controller
+    {
+        readonly IProductRepository productRepository;
+        readonly IOrderRepository orderRepository;
+        readonly ICouponRepository couponRepository;
+        readonly IProductVariantRepository variantRepository;
+        readonly IUserProfileRepository userProfileRepository;
+        readonly IAddressRepository addressRepository;
+        private readonly UserManager<IdentityUser> userManager;
+        private readonly IEmailSender emailSender;
+        private readonly IRazorViewToStringRenderer razorRenderer;
+
+        public PanierController(IProductRepository productRepository,
+            IOrderRepository orderRepository,
+            ICouponRepository couponRepository,
+            IProductVariantRepository variantRepository,
+            IUserProfileRepository userProfileRepository,
+            IAddressRepository addressRepository,
+            UserManager<IdentityUser> userManager,
+            IEmailSender emailSender,
+            IRazorViewToStringRenderer razorRenderer)
+        {
+            this.productRepository = productRepository;
+            this.orderRepository = orderRepository;
+            this.couponRepository = couponRepository;
+            this.variantRepository = variantRepository;
+            this.userProfileRepository = userProfileRepository;
+            this.addressRepository = addressRepository;
+            this.userManager = userManager;
+            this.emailSender = emailSender;
+            this.razorRenderer = razorRenderer;
+        }
+
+        public ActionResult Index()
+        {
+            ViewBag.Liste = ListeCart.Instance.Items;
+            ViewBag.SubTotal = ListeCart.Instance.GetSubTotal();
+            ViewBag.Discount = ListeCart.Instance.GetDiscount();
+            ViewBag.Total = ListeCart.Instance.GetTotal();
+            ViewBag.AppliedCoupon = ListeCart.Instance.AppliedCoupon;
+            // Garder ViewBag.total pour compatibilité avec la vue
+            ViewBag.total = ListeCart.Instance.GetTotal();
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult ApplyCoupon(string couponCode)
+        {
+            if (string.IsNullOrWhiteSpace(couponCode))
+            {
+                TempData["CouponError"] = "Veuillez saisir un code promo.";
+                return RedirectToAction("Index");
+            }
+
+            var coupon = couponRepository.GetByCode(couponCode.Trim());
+            if (coupon == null)
+            {
+                TempData["CouponError"] = "Code promo invalide.";
+                return RedirectToAction("Index");
+            }
+
+            float subtotal = ListeCart.Instance.GetSubTotal();
+            if (!couponRepository.ValidateCoupon(coupon, subtotal))
+            {
+                TempData["CouponError"] = "Ce code promo n'est pas valide pour cette commande.";
+                return RedirectToAction("Index");
+            }
+
+            ListeCart.Instance.AppliedCoupon = coupon;
+            TempData["CouponSuccess"] = $"Code promo '{coupon.Code}' appliqué avec succès !";
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public ActionResult RemoveCoupon()
+        {
+            ListeCart.Instance.ClearCoupon();
+            TempData["CouponSuccess"] = "Code promo retiré.";
+            return RedirectToAction("Index");
+        }
+
+        public ActionResult AddProduct(int id, int? variantId = null)
+        {
+            Product pp = productRepository.GetById(id);
+            if (pp == null)
+            {
+                return NotFound();
+            }
+            
+            ProductVariant? variant = null;
+            if (variantId.HasValue)
+            {
+                variant = variantRepository.GetById(variantId.Value);
+                if (variant == null || variant.ProductId != id)
+                {
+                    TempData["ErrorMessage"] = "Variante invalide.";
+                    return RedirectToAction("Details", "Product", new { id });
+                }
+            }
+            
+            ListeCart.Instance.AddItem(pp, variant);
+            ViewBag.Liste = ListeCart.Instance.Items;
+            ViewBag.total = ListeCart.Instance.GetSubTotal();
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public ActionResult PlusProduct(int id)
+        {
+            Product pp = productRepository.GetById(id);
+            ListeCart.Instance.AddItem(pp);
+            Item trouve = null;
+            foreach (Item a in ListeCart.Instance.Items)
+            {
+                if (a.Prod.ProductId == pp.ProductId)
+                    trouve = a;
+            }
+            var results = new
+            {
+                ct = 1,
+                Total = ListeCart.Instance.GetSubTotal(),
+                Quatite = trouve.quantite,
+                TotalRow = trouve.TotalPrice
+            };
+            return Json(results);
+        }
+
+        [HttpPost]
+        public ActionResult MinusProduct(int id)
+        {
+            Product pp = productRepository.GetById(id);
+            ListeCart.Instance.SetLessOneItem(pp);
+            Item trouve = null;
+            foreach (Item a in ListeCart.Instance.Items)
+            {
+                if (a.Prod.ProductId == pp.ProductId)
+                    trouve = a;
+            }
+            if (trouve != null)
+            {
+                var results = new
+                {
+                    Total = ListeCart.Instance.GetSubTotal(),
+                    Quatite = trouve.quantite,
+                    TotalRow = trouve.TotalPrice,
+                    ct = 1
+                };
+                return Json(results);
+            }
+            else
+            {
+                var results = new
+                {
+                    ct = 0
+                };
+                return Json(results);
+            }
+        }
+
+        [HttpPost]
+        public ActionResult RemoveProduct(int id)
+        {
+            Product pp = productRepository.GetById(id);
+            ListeCart.Instance.RemoveItem(pp);
+            var results = new
+            {
+                Total = ListeCart.Instance.GetSubTotal(),
+            };
+            return Json(results);
+        }
+
+        [Authorize]
+        // GET: /Order/Checkout
+        [HttpGet]
+        public async Task<IActionResult> Checkout()
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Request.Path });
+            }
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Request.Path });
+            }
+            
+            // Charger le profil utilisateur et ses adresses
+            var userProfile = userProfileRepository.GetByUserId(user.Id);
+            var addresses = userProfile != null ? addressRepository.GetByUserProfileId(userProfile.UserProfileId) : new List<Address>();
+            
+            var cartItems = ListeCart.Instance.Items.ToList();
+            var totalAmount = ListeCart.Instance.GetTotal();
+            var viewModel = new OrderViewModel
+            {
+                CartItems = cartItems.Select(item => new CartItemViewModel
+                {
+                    ProductId = item.Prod.ProductId,
+                    ProductVariantId = item.Variant?.ProductVariantId,
+                    ProductName = item.Prod.Name,
+                    VariantInfo = item.Variant != null 
+                        ? $"{(string.IsNullOrEmpty(item.Variant.Size) ? "" : "Taille: " + item.Variant.Size + ", ")}{(string.IsNullOrEmpty(item.Variant.Color) ? "" : "Couleur: " + item.Variant.Color)}"
+                        : null,
+                    Quantity = item.quantite,
+                    Price = item.UnitPrice
+                }).ToList(),
+                TotalAmount = totalAmount,
+                Email = user.Email ?? "",
+                PhoneNumber = userProfile?.PhoneNumber
+            };
+            
+            ViewBag.Addresses = addresses;
+            ViewBag.UserProfile = userProfile;
+            
+            return View(viewModel);
+        }
+
+        // POST : /Order/Checkout
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Checkout(OrderViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = userManager.GetUserAsync(User).Result;
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] = "Utilisateur non authentifié.";
+                    return RedirectToAction("Login", "Account", new { returnUrl = Request.Path });
+                }
+                // Utiliser l'adresse sélectionnée si disponible
+                Address? selectedAddress = null;
+                if (model.SelectedAddressId.HasValue)
+                {
+                    selectedAddress = addressRepository.GetById(model.SelectedAddressId.Value);
+                }
+                
+                // Recharger les articles du panier depuis la source (ListeCart)
+                var cartItems = ListeCart.Instance.Items.ToList();
+                model.CartItems = cartItems.Select(item => new CartItemViewModel
+                {
+                    ProductId = item.Prod.ProductId,
+                    ProductVariantId = item.Variant?.ProductVariantId,
+                    ProductName = item.Prod.Name,
+                    VariantInfo = item.Variant != null 
+                        ? $"{(string.IsNullOrEmpty(item.Variant.Size) ? "" : "Taille: " + item.Variant.Size + ", ")} {(string.IsNullOrEmpty(item.Variant.Color) ? "" : "Couleur: " + item.Variant.Color)}"
+                        : null,
+                    Quantity = item.quantite,
+                    Price = item.UnitPrice
+                }).ToList();
+                model.TotalAmount = ListeCart.Instance.GetTotal();
+                
+                // Incrémenter l'utilisation du coupon si appliqué
+                if (ListeCart.Instance.AppliedCoupon != null)
+                {
+                    couponRepository.IncrementUse(ListeCart.Instance.AppliedCoupon.CouponId);
+                }
+
+                // Décrémenter le stock des produits/variantes
+                foreach (var cartItem in cartItems)
+                {
+                    if (cartItem.Variant != null)
+                    {
+                        variantRepository.DecrementStock(cartItem.Variant.ProductVariantId, cartItem.quantite);
+                    }
+                    else
+                    {
+                        var product = productRepository.GetById(cartItem.Prod.ProductId);
+                        if (product != null && product.QteStock >= cartItem.quantite)
+                        {
+                            product.QteStock -= cartItem.quantite;
+                            productRepository.Update(product);
+                        }
+                    }
+                }
+
+                var order = new Order
+                {
+                    CustomerName = user.UserName ?? user.Email ?? "Client",
+                    Email = user.Email ?? model.Email,
+                    Address = selectedAddress != null ? selectedAddress.StreetAddress : model.Address,
+                    City = selectedAddress?.City ?? model.City,
+                    PostalCode = selectedAddress?.PostalCode ?? model.PostalCode,
+                    Country = selectedAddress?.Country ?? model.Country ?? "Tunisie",
+                    PhoneNumber = selectedAddress != null ? null : model.PhoneNumber,
+                    PaymentMethod = model.PaymentMethod,
+                    PaymentStatus = model.PaymentMethod == "CashOnDelivery" ? "Pending" : "Pending",
+                    OrderStatus = "Pending",
+                    TotalAmount = model.TotalAmount,
+                    OrderDate = DateTime.Now,
+                    UserId = user.Id,
+                    Items = model.CartItems.Select(item => new OrderItem
+                    {
+                        ProductId = item.ProductId,
+                        ProductVariantId = item.ProductVariantId,
+                        ProductName = item.ProductName,
+                        VariantInfo = item.VariantInfo,
+                        Quantity = item.Quantity,
+                        Price = item.Price
+                    }).ToList()
+                };
+                orderRepository.Add(order);
+                ListeCart.Instance.Items.Clear();
+                ListeCart.Instance.ClearCoupon();
+
+                // Send transactional email (order confirmation)
+                try
+                {
+                    var html = await razorRenderer.RenderViewToStringAsync("/Views/Emails/OrderConfirmation.cshtml", order);
+                    await emailSender.SendEmailAsync(order.Email, $"Confirmation de commande #{order.Id}", html);
+                }
+                catch
+                {
+                    // Ne pas empêcher le déroulement si l'email échoue
+                }
+
+                TempData["SuccessMessage"] = "Votre commande a été passée avec succès.";
+                return RedirectToAction("Confirmation", new { orderId = order.Id });
+            }
+            
+            // Recharger les données pour la vue en cas d'erreur
+            var userForView = await userManager.GetUserAsync(User);
+            if (userForView != null)
+            {
+                var userProfile = userProfileRepository.GetByUserId(userForView.Id);
+                var addresses = userProfile != null ? addressRepository.GetByUserProfileId(userProfile.UserProfileId) : new List<Address>();
+                ViewBag.Addresses = addresses;
+                ViewBag.UserProfile = userProfile;
+            }
+            
+            TempData["ErrorMessage"] = "Une erreur est survenue. Veuillez vérifier les informations.";
+            return View(model);
+        }
+
+        // GET: /Order/Confirmation
+        public IActionResult Confirmation(int orderId)
+        {
+            var order = orderRepository.GetById(orderId);
+            return View(order);
+        }
+    }
+}

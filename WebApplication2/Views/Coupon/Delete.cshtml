@@ -1,0 +1,32 @@
+@model WebApplication2.Models.Coupon
+
+@{
+    ViewData["Title"] = "Supprimer le Coupon";
+}
+
+<h1>Supprimer le Coupon</h1>
+
+<h3>Êtes-vous sûr de vouloir supprimer ce coupon ?</h3>
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">Code</dt>
+        <dd class="col-sm-10">@Model.Code</dd>
+        
+        <dt class="col-sm-2">Type</dt>
+        <dd class="col-sm-10">@(Model.Type == "Percent" ? "Pourcentage" : "Montant fixe")</dd>
+        
+        <dt class="col-sm-2">Valeur</dt>
+        <dd class="col-sm-10">@(Model.Type == "Percent" ? Model.Value + "%" : Model.Value.ToString("C"))</dd>
+        
+        <dt class="col-sm-2">Utilisations</dt>
+        <dd class="col-sm-10">@Model.CurrentUse</dd>
+    </dl>
+    
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="CouponId" />
+        <input type="submit" value="Supprimer" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+

@@ -1,0 +1,79 @@
+﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+// for details on configuring this project to bundle and minify static web assets.
+
+// Write your JavaScript code.
+
+document.addEventListener("DOMContentLoaded", function () {
+    var sidebar = document.getElementById("sidebar");
+    var mainContent = document.getElementById("mainContent");
+    var toggleButton = document.getElementById("toggleMenu");
+    
+    // Fonction pour calculer et appliquer la position fixe
+    function makeSidebarFixed() {
+        if (sidebar && sidebar.style.display !== "none") {
+            var navbar = document.querySelector('header');
+            var navbarHeight = navbar ? navbar.offsetHeight : 0;
+            var container = document.querySelector('.container-fluid');
+            var containerRect = container ? container.getBoundingClientRect() : { left: 0, width: window.innerWidth };
+            
+            // Calculer la largeur du sidebar (col-md-2 = 16.666667%)
+            var sidebarWidth = containerRect.width * 0.16666667;
+            
+            // Calculer la position left en fonction du container
+            var leftPosition = containerRect.left + 15; // 15px de padding
+            
+            // Ajouter la classe pour le style fixed
+            sidebar.classList.add('sidebar-fixed');
+            
+            // Ajuster la position top, left et width
+            sidebar.style.top = (navbarHeight + 20) + 'px';
+            sidebar.style.left = leftPosition + 'px';
+            sidebar.style.width = (sidebarWidth - 30) + 'px'; // -30px pour les paddings
+        }
+    }
+    
+    // Fonction pour retirer le fixed
+    function removeSidebarFixed() {
+        if (sidebar) {
+            sidebar.classList.remove('sidebar-fixed');
+            sidebar.style.top = '';
+            sidebar.style.left = '';
+            sidebar.style.width = '';
+        }
+    }
+    
+    // Gérer l'affichage du menu au clic
+    if (toggleButton) {
+        toggleButton.addEventListener("click", function () {
+            if (sidebar.style.display === "none" || sidebar.style.display === "") {
+                sidebar.style.display = "block";
+                mainContent.classList.remove("col-md-12");
+                mainContent.classList.add("col-md-10");
+                
+                // Attendre que le DOM soit mis à jour puis appliquer le fixed
+                setTimeout(function() {
+                    makeSidebarFixed();
+                }, 10);
+            } else {
+                sidebar.style.display = "none";
+                mainContent.classList.remove("col-md-10");
+                mainContent.classList.add("col-md-12");
+                removeSidebarFixed();
+            }
+        });
+    }
+    
+    // Réappliquer le fixed lors du redimensionnement de la fenêtre
+    window.addEventListener('resize', function() {
+        if (sidebar && sidebar.style.display !== "none") {
+            makeSidebarFixed();
+        }
+    });
+    
+    // Réappliquer le fixed lors du scroll (au cas où)
+    window.addEventListener('scroll', function() {
+        if (sidebar && sidebar.style.display !== "none" && sidebar.classList.contains('sidebar-fixed')) {
+            // Le fixed reste en place, pas besoin de recalculer
+        }
+    });
+});

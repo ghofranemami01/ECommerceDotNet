@@ -1,0 +1,254 @@
+@model WebApplication2.Models.UserProfile
+@{
+    ViewData["Title"] = "Mon Profil";
+    var addresses = ViewBag.Addresses as IList<WebApplication2.Models.Address> ?? new List<WebApplication2.Models.Address>();
+    var orders = ViewBag.Orders as IList<WebApplication2.Models.Order> ?? new List<WebApplication2.Models.Order>();
+    var user = ViewBag.User as Microsoft.AspNetCore.Identity.IdentityUser;
+}
+
+<h2 class="mb-4">Mon Profil</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Informations personnelles</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Update" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="UserProfileId" />
+                    <input type="hidden" asp-for="UserId" />
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" value="@user?.Email" disabled />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="DateOfBirth" class="form-label"></label>
+                        <input asp-for="DateOfBirth" type="date" class="form-control" />
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Mes adresses</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                    <i class="fas fa-plus"></i> Ajouter une adresse
+                </button>
+            </div>
+            <div class="card-body">
+                @if (addresses.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var addr in addresses)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        @if (addr.IsDefault)
+                                        {
+                                            <span class="badge bg-primary mb-2">Par défaut</span>
+                                        }
+                                        <p class="mb-1"><strong>@addr.StreetAddress</strong></p>
+                                        <p class="mb-1">@addr.City, @addr.PostalCode</p>
+                                        <p class="mb-0 text-muted">@addr.Country</p>
+                                        @if (!string.IsNullOrEmpty(addr.AddressType))
+                                        {
+                                            <small class="text-muted">Type: @addr.AddressType</small>
+                                        }
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="editAddress(@addr.AddressId, '@addr.StreetAddress', '@addr.City', '@addr.PostalCode', '@addr.Country', '@addr.AddressType', @addr.IsDefault.ToString().ToLower())">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form asp-action="DeleteAddress" method="post" class="d-inline" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette adresse ?');">
+                                            <input type="hidden" name="id" value="@addr.AddressId" />
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">Aucune adresse enregistrée.</p>
+                }
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Historique des commandes</h5>
+            </div>
+            <div class="card-body">
+                @if (orders.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>N° Commande</th>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in orders)
+                                {
+                                    <tr>
+                                        <td>#@order.Id</td>
+                                        <td>@order.OrderDate.ToShortDateString()</td>
+                                        <td>@order.TotalAmount.ToString("C")</td>
+                                        <td>
+                                            <span class="badge bg-@(order.OrderStatus == "Delivered" ? "success" : order.OrderStatus == "Shipped" ? "info" : "warning")">
+                                                @order.OrderStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary">
+                                                Détails
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">Aucune commande passée.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter/modifier une adresse -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addressModalTitle">Ajouter une adresse</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addressForm" asp-action="AddAddress" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="addressId" name="AddressId" />
+                <input type="hidden" asp-for="UserProfileId" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Adresse</label>
+                        <input type="text" name="StreetAddress" class="form-control" required />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Ville</label>
+                                <input type="text" name="City" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Code postal</label>
+                                <input type="text" name="PostalCode" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pays</label>
+                        <input type="text" name="Country" class="form-control" value="Tunisie" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type d'adresse</label>
+                        <select name="AddressType" class="form-select">
+                            <option value="Home">Domicile</option>
+                            <option value="Work">Travail</option>
+                            <option value="Other">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="IsDefault" class="form-check-input" id="isDefault" />
+                        <label class="form-check-label" for="isDefault">Définir comme adresse par défaut</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editAddress(id, street, city, postal, country, type, isDefault) {
+    document.getElementById('addressId').value = id;
+    document.getElementById('addressModalTitle').textContent = 'Modifier l\'adresse';
+    document.getElementById('addressForm').action = '@Url.Action("UpdateAddress")';
+    document.querySelector('input[name="StreetAddress"]').value = street;
+    document.querySelector('input[name="City"]').value = city;
+    document.querySelector('input[name="PostalCode"]').value = postal;
+    document.querySelector('input[name="Country"]').value = country;
+    document.querySelector('select[name="AddressType"]').value = type || 'Home';
+    document.getElementById('isDefault').checked = isDefault;
+    
+    var modal = new bootstrap.Modal(document.getElementById('addAddressModal'));
+    modal.show();
+}
+
+document.getElementById('addAddressModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('addressForm').reset();
+    document.getElementById('addressId').value = '';
+    document.getElementById('addressModalTitle').textContent = 'Ajouter une adresse';
+    document.getElementById('addressForm').action = '@Url.Action("AddAddress")';
+});
+</script>
+
+
+

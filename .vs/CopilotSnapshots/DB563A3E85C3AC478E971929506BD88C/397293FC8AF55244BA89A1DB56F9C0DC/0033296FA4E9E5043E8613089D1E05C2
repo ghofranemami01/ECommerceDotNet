@@ -1,0 +1,64 @@
+﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+// for details on configuring this project to bundle and minify static web assets.
+
+// Write your JavaScript code.
+
+document.addEventListener("DOMContentLoaded", function () {
+    var sidebar = document.getElementById("sidebar");
+    var mainContent = document.getElementById("mainContent");
+    var toggleButton = document.getElementById("toggleMenu");
+
+    function openSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.add('open');
+        // prevent body scrolling when sidebar full-screen on mobile
+        if (window.innerWidth <= 767.98) {
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    if (toggleButton) {
+        toggleButton.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (!sidebar) return;
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+    }
+
+    // Close when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!sidebar) return;
+        if (!sidebar.classList.contains('open')) return;
+        var target = e.target;
+        if (!sidebar.contains(target) && !toggleButton.contains(target)) {
+            closeSidebar();
+        }
+    });
+
+    // Close on escape
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSidebar();
+    });
+
+    // Ensure sidebar state on resize
+    window.addEventListener('resize', function () {
+        if (!sidebar) return;
+        if (window.innerWidth > 767.98) {
+            // on desktop, keep it as floating panel but allow normal body scroll
+            document.body.style.overflow = '';
+        } else {
+            // if mobile and sidebar is open, make sure body is locked
+            if (sidebar.classList.contains('open')) document.body.style.overflow = 'hidden';
+        }
+    });
+});

@@ -1,0 +1,19 @@
+@model WebApplication2.Models.Order
+
+<h3>Merci pour votre commande #@Model.Id</h3>
+<p>Bonjour @Model.CustomerName,</p>
+<p>Nous avons bien reçu votre commande. Détails :</p>
+<ul>
+    <li>Montant total : @Model.TotalAmount.ToString("C")</li>
+    <li>Date : @Model.OrderDate.ToString("g")</li>
+</ul>
+<p>Articles :</p>
+<ul>
+    @foreach (var item in Model.Items)
+    {
+        <li>@item.ProductName x @item.Quantity - @((item.Price * item.Quantity).ToString("C"))</li>
+    }
+</ul>
+<p>Nous vous informerons lorsque votre commande sera expédiée.</p>
+<p>Merci,</p>
+<p>L'équipe ModaX</p>

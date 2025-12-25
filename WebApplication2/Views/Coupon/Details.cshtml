@@ -1,0 +1,56 @@
+@model WebApplication2.Models.Coupon
+
+@{
+    ViewData["Title"] = "Détails du Coupon";
+}
+
+<h1>Détails du Coupon</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">Code</dt>
+        <dd class="col-sm-10"><strong>@Model.Code</strong></dd>
+        
+        <dt class="col-sm-2">Type</dt>
+        <dd class="col-sm-10">@(Model.Type == "Percent" ? "Pourcentage" : "Montant fixe")</dd>
+        
+        <dt class="col-sm-2">Valeur</dt>
+        <dd class="col-sm-10">@(Model.Type == "Percent" ? Model.Value + "%" : Model.Value.ToString("C"))</dd>
+        
+        <dt class="col-sm-2">Commande minimum</dt>
+        <dd class="col-sm-10">@(Model.MinOrder?.ToString("C") ?? "Aucun")</dd>
+        
+        <dt class="col-sm-2">Date de début</dt>
+        <dd class="col-sm-10">@(Model.StartDate?.ToString("dd/MM/yyyy HH:mm") ?? "Sans limite")</dd>
+        
+        <dt class="col-sm-2">Date de fin</dt>
+        <dd class="col-sm-10">@(Model.EndDate?.ToString("dd/MM/yyyy HH:mm") ?? "Sans limite")</dd>
+        
+        <dt class="col-sm-2">Utilisations max par utilisateur</dt>
+        <dd class="col-sm-10">@(Model.MaxUsePerUser?.ToString() ?? "Illimité")</dd>
+        
+        <dt class="col-sm-2">Utilisations totales max</dt>
+        <dd class="col-sm-10">@(Model.MaxTotalUse?.ToString() ?? "Illimité")</dd>
+        
+        <dt class="col-sm-2">Utilisations actuelles</dt>
+        <dd class="col-sm-10">@Model.CurrentUse</dd>
+        
+        <dt class="col-sm-2">Statut</dt>
+        <dd class="col-sm-10">
+            @if (Model.IsActive)
+            {
+                <span class="badge bg-success">Actif</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Inactif</span>
+            }
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.CouponId" class="btn btn-warning">Modifier</a>
+    <a asp-action="Index" class="btn btn-secondary">Retour à la liste</a>
+</div>
+

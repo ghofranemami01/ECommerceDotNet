@@ -1,0 +1,114 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebApplication2.Models.Repositories;
+
+namespace WebApplication2.Controllers
+{
+    [Authorize(Roles = "Admin,Manager")]
+    public class OrderController : Controller
+    {
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProductVariantRepository _variantRepository;
+        private readonly IProductRepository _productRepository;
+
+        public OrderController(IOrderRepository orderRepository, IProductVariantRepository variantRepository, IProductRepository productRepository)
+        {
+            _orderRepository = orderRepository;
+            _variantRepository = variantRepository;
+            _productRepository = productRepository;
+        }
+
+        // GET: Order
+        public ActionResult Index()
+        {
+            var orders = _orderRepository.GetAll();
+            return View(orders);
+        }
+
+        // GET: Order/Details/5
+        public ActionResult Details(int id)
+        {
+            var order = _orderRepository.GetById(id);
+            if (order == null)
+                return NotFound();
+            return View(order);
+        }
+
+        // POST: Order/UpdateStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateStatus(int id, string orderStatus)
+        {
+            var order = _orderRepository.GetById(id);
+            if (order == null)
+                return NotFound();
+
+            order.OrderStatus = orderStatus;
+            
+            if (orderStatus == "Shipped" && !order.ShippedDate.HasValue)
+            {
+                order.ShippedDate = DateTime.Now;
+            }
+            else if (orderStatus == "Delivered" && !order.DeliveredDate.HasValue)
+            {
+                order.DeliveredDate = DateTime.Now;
+                order.PaymentStatus = "Paid";
+            }
+
+            _orderRepository.Update(order);
+            TempData["SuccessMessage"] = "Statut de la commande mis à jour avec succès.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: Order/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Delete(int id, bool restoreStock = true)
+        {
+            var order = _orderRepository.GetById(id);
+            if (order == null)
+                return NotFound();
+
+            // Only allow deletion for cancelled or pending orders to avoid removing fulfilled records accidentally
+            if (order.OrderStatus != "Cancelled" && order.OrderStatus != "Pending")
+            {
+                TempData["ErrorMessage"] = "Seules les commandes annulées ou en attente peuvent être supprimées.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (restoreStock)
+            {
+                // Restore stock for each item
+                foreach (var item in order.Items ?? new List<WebApplication2.Models.OrderItem>())
+                {
+                    if (item.ProductVariantId.HasValue)
+                    {
+                        int vid = item.ProductVariantId.Value;
+                        var variant = _variantRepository.GetById(vid);
+                        if (variant != null)
+                        {
+                            variant.Stock += item.Quantity;
+                            _variantRepository.Update(variant);
+                        }
+                    }
+                    else
+                    {
+                        var product = _productRepository.GetById(item.ProductId);
+                        if (product != null)
+                        {
+                            product.QteStock += item.Quantity;
+                            _productRepository.Update(product);
+                        }
+                    }
+                }
+            }
+
+            _orderRepository.Delete(id);
+            TempData["SuccessMessage"] = "Commande supprimée.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+}
+
+
+

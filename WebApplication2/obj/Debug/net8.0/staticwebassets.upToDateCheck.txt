@@ -1,0 +1,100 @@
+wwwroot\css\site.css
+wwwroot\favicon.ico
+wwwroot\images\0589c32f-2d9a-4be5-9265-908079fb2066_images (2).jpg
+wwwroot\images\12c00474-29dc-4ab2-8532-805d3126e00e_images (2).jpg
+wwwroot\images\1715ea46-15ee-4ec7-b006-480105b94d36_images (7).jpeg
+wwwroot\images\17766e7d-21b6-4f87-b9ee-0ba1c5c5443c_images.jpg
+wwwroot\images\34836516-87d0-4448-98e2-d9892a6b35b1_download (11).jpeg
+wwwroot\images\352ca627-48a1-4918-a7e0-01bd9fb9cbbb_patisserie2.jpg
+wwwroot\images\378b4973-b897-43fb-9310-4b52d8a75406_images (33).jpeg
+wwwroot\images\38dc69be-69de-408e-a7d8-6ca561837a72_pull.jpeg
+wwwroot\images\3977e108-85f6-4930-8a3b-2c2109c6d3d5_thon.jpg
+wwwroot\images\424685aa-31ca-4e7b-ac57-e24fc1fca2d3_download.jpeg
+wwwroot\images\42daa7c1-ee09-41c5-bc8d-3269a7f5a32d_le-kafteji-bnedak.jpg
+wwwroot\images\513aa25d-5db3-4a5a-a091-819bdf394f21_download (7).jpeg
+wwwroot\images\53bbdfac-89fc-4154-9f94-b9c84af049ea_images (12).jpeg
+wwwroot\images\7aedccf6-3821-4199-95c7-98e63c995e9a_download (18).jpeg
+wwwroot\images\8282eafd-58c7-4b4f-afc3-6a84424f3e66_pull.jpeg
+wwwroot\images\882f2f84-aeb7-4e77-8cb9-9ea64ba02a91_images.jpeg
+wwwroot\images\8be90768-fd86-4ef8-9746-2c2f05adae9e_images (1).jpg
+wwwroot\images\8f51b683-d4e2-4163-9066-876446085ab7_images (30).jpeg
+wwwroot\images\98c28bd1-591e-4d3a-ae9d-45c6b028b1ed_download (30).jpeg
+wwwroot\images\9bcaa62d-32bb-49bc-adee-43f9ee7a5207_download (1).jpeg
+wwwroot\images\9ee86256-794e-4cfd-a33b-712137ff7cf3_mini-sandwich-poulet.jpg
+wwwroot\images\add.png
+wwwroot\images\b36f7bb2-31f1-4f20-8d9c-4a207ba9bd44_pomme-large.jpg
+wwwroot\images\ba06720f-8e2b-4099-9dea-7aa70df2d88d_images (2).jpg
+wwwroot\images\ba889137-b1ef-4ccd-84d2-110c65b9b258_images (9).jpeg
+wwwroot\images\bc9d8c92-a271-480f-ae47-2de86c418f8f_images (1).jpg
+wwwroot\images\categorie.png
+wwwroot\images\d33c9dc9-85fd-4e90-a0e1-1da6d8b3d17c_download (17).jpeg
+wwwroot\images\delet.png
+wwwroot\images\ec643c37-d1dd-4b0d-bded-6c9270afcbcd_pull.jpeg
+wwwroot\images\edd6b5f7-8abd-49a0-b888-33d22ad417ea_mini-gaufre-saumon.jpg
+wwwroot\images\fcafc20f-b1d3-4a21-898b-2f6e252370fb_images (11).jpeg
+wwwroot\images\moin.png
+wwwroot\images\noacess.png
+wwwroot\images\panier_vide.png
+wwwroot\images\pat1.jpg
+wwwroot\images\patisserie2.jpg
+wwwroot\images\patisserie3.jpg
+wwwroot\js\CustomScript.js
+wwwroot\js\Monscript.js
+wwwroot\js\site.js
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap.css
+wwwroot\lib\bootstrap\dist\css\bootstrap.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap.min.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.css
+wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.css.map
+wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.min.css
+wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.min.css.map
+wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js
+wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js.map
+wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js
+wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js.map
+wwwroot\lib\bootstrap\dist\js\bootstrap.esm.js
+wwwroot\lib\bootstrap\dist\js\bootstrap.esm.js.map
+wwwroot\lib\bootstrap\dist\js\bootstrap.esm.min.js
+wwwroot\lib\bootstrap\dist\js\bootstrap.esm.min.js.map
+wwwroot\lib\bootstrap\dist\js\bootstrap.js
+wwwroot\lib\bootstrap\dist\js\bootstrap.js.map
+wwwroot\lib\bootstrap\dist\js\bootstrap.min.js
+wwwroot\lib\bootstrap\dist\js\bootstrap.min.js.map
+wwwroot\lib\bootstrap\LICENSE
+wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.js
+wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.min.js
+wwwroot\lib\jquery-validation-unobtrusive\LICENSE.txt
+wwwroot\lib\jquery-validation\dist\additional-methods.js
+wwwroot\lib\jquery-validation\dist\additional-methods.min.js
+wwwroot\lib\jquery-validation\dist\jquery.validate.js
+wwwroot\lib\jquery-validation\dist\jquery.validate.min.js
+wwwroot\lib\jquery-validation\LICENSE.md
+wwwroot\lib\jquery\dist\jquery.js
+wwwroot\lib\jquery\dist\jquery.min.js
+wwwroot\lib\jquery\dist\jquery.min.map
+wwwroot\lib\jquery\LICENSE.txt

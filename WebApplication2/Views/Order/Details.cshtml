@@ -1,0 +1,116 @@
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <!-- Bouton retour -->
+            <div class="mb-3 text-center">
+                <a asp-controller="Order" asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Retour à la liste des commandes
+                </a>
+            </div>
+
+
+            <!-- Carte principale -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Commande #@Model.Id</h3>
+                </div>
+
+                <div class="card-body">
+                    <!-- Infos client et commande -->
+                    <div class="mb-4">
+                        <p><strong>Client :</strong> @Model.CustomerName (@Model.Email)</p>
+                        <p>
+                            <strong>Status :</strong>
+                            @switch (Model.OrderStatus)
+                            {
+                                case "Pending":
+                                    <span class="badge bg-warning text-dark">En attente</span>
+                                    break;
+                                case "Shipped":
+                                    <span class="badge bg-info text-dark">Expédiée</span>
+                                    break;
+                                case "Delivered":
+                                    <span class="badge bg-success">Livrée</span>
+                                    break;
+                                case "Cancelled":
+                                    <span class="badge bg-danger">Annulée</span>
+                                    break;
+                            }
+                        </p>
+                        <p>
+                            <strong>Paiement :</strong>
+                            @if (Model.PaymentStatus == "Paid")
+                            {
+                                <span class="badge bg-success">Payé</span>
+                            }
+                            else if (Model.PaymentStatus == "Pending")
+                            {
+                                <span class="badge bg-warning text-dark">En attente</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Échec</span>
+                            }
+                        </p>
+                        <p><strong>Date :</strong> @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+
+                    <!-- Table des articles -->
+                    <h5 class="mb-3">Articles</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped text-center">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Produit</th>
+                                    <th>Variant</th>
+                                    <th>Quantité</th>
+                                    <th>Prix unitaire</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td>@item.ProductName</td>
+                                        <td>@item.VariantInfo</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.Price.ToString("C")</td>
+                                        <td>@(item.Price* item.Quantity).ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Formulaire mise à jour statut -->
+                    <form asp-action="UpdateStatus" method="post" class="mt-4 text-center">
+                        <input type="hidden" name="id" value="@Model.Id" />
+
+                        @{
+                            var statusList = new List<SelectListItem>
+                                                {
+                                                new SelectListItem { Text="En attente", Value="Pending", Selected=Model.OrderStatus=="Pending" },
+                                                new SelectListItem { Text="Expédiée", Value="Shipped", Selected=Model.OrderStatus=="Shipped" },
+                                                new SelectListItem { Text="Livrée", Value="Delivered", Selected=Model.OrderStatus=="Delivered" },
+                                                new SelectListItem { Text="Annulée", Value="Cancelled", Selected=Model.OrderStatus=="Cancelled" }
+                                                };
+                        }
+
+                        <div class="mb-3">
+                            <label for="orderStatus" class="form-label fw-bold">Mettre à jour le statut</label>
+                            @Html.DropDownList("orderStatus", statusList, "Sélectionner un statut", new { @class = "form-select" })
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-sync-alt me-1"></i> Mettre à jour
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

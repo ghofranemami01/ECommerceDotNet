@@ -1,0 +1,98 @@
+@model WebApplication2.Models.Coupon
+
+@{
+    ViewData["Title"] = "Modifier le Coupon";
+}
+
+<h1>Modifier le Coupon</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="CouponId" />
+            <input type="hidden" asp-for="CurrentUse" />
+            
+            <div class="form-group mb-3">
+                <label asp-for="Code" class="control-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Type" class="control-label"></label>
+                <select asp-for="Type" class="form-select" asp-items="ViewBag.TypeList"></select>
+                <span asp-validation-for="Type" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Value" class="control-label"></label>
+                <input asp-for="Value" class="form-control" type="number" step="0.01" />
+                <span asp-validation-for="Value" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="MinOrder" class="control-label"></label>
+                <input asp-for="MinOrder" class="form-control" type="number" step="0.01" />
+                <span asp-validation-for="MinOrder" class="text-danger"></span>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="StartDate" class="control-label"></label>
+                        <input asp-for="StartDate" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="StartDate" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="EndDate" class="control-label"></label>
+                        <input asp-for="EndDate" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="EndDate" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="MaxUsePerUser" class="control-label"></label>
+                        <input asp-for="MaxUsePerUser" class="form-control" type="number" />
+                        <span asp-validation-for="MaxUsePerUser" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="MaxTotalUse" class="control-label"></label>
+                        <input asp-for="MaxTotalUse" class="form-control" type="number" />
+                        <span asp-validation-for="MaxTotalUse" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group mb-3">
+                <div class="form-check">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                </div>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label class="control-label">Utilisations actuelles</label>
+                <input type="text" class="form-control" value="@Model.CurrentUse" disabled />
+            </div>
+            
+            <div class="form-group">
+                <input type="submit" value="Enregistrer" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Retour à la liste</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

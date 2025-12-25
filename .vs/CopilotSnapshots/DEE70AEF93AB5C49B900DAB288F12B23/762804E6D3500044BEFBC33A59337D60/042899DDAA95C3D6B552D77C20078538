@@ -1,0 +1,386 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using WebApplication2.Models;
+using WebApplication2.Models.Repositories;
+using WebApplication2.ViewModels;
+
+namespace WebApplication2.Controllers
+{
+    public class ProductController : Controller
+    {
+        readonly IProductRepository ProductRepository;
+        readonly ICategorieRepository CategRepository;
+        readonly IReviewRepository ReviewRepository;
+        readonly IProductVariantRepository VariantRepository;
+        private readonly IWebHostEnvironment hostingEnvironment;
+        private readonly Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> userManager;
+
+        public ProductController(IProductRepository ProdRepository, ICategorieRepository categRepository, 
+            IReviewRepository reviewRepository, IProductVariantRepository variantRepository,
+            IWebHostEnvironment hostingEnvironment,
+            Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> userManager)
+        {
+            ProductRepository = ProdRepository;
+            CategRepository = categRepository;
+            ReviewRepository = reviewRepository;
+            VariantRepository = variantRepository;
+            this.hostingEnvironment = hostingEnvironment;
+            this.userManager = userManager;
+        }
+
+        // GET: ProductController
+        [AllowAnonymous]
+        public ActionResult Index(int? categoryId, string? search = null, float? minPrice = null, float? maxPrice = null, string? sort = null, int page = 1)
+        {
+            int pageSize = 4;  // Nombre de produits par page
+            var categories = CategRepository.GetAll();
+            // Passer les catégories à la vue
+            ViewData["Categories"] = categories;
+            
+            // Récupérer les produits en fonction de categoryId, s'il est spécifié
+            IQueryable<Product> productsQuery = ProductRepository.GetAllProducts();
+            if (categoryId.HasValue)
+            {
+                productsQuery = productsQuery.Where(p => p.CategoryId == categoryId);
+            }
+
+            // Recherche plein texte simple (nom produit + nom catégorie)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string term = search.Trim();
+                productsQuery = productsQuery.Where(p => p.Name.Contains(term) || (p.Category != null && p.Category.CategoryName.Contains(term)));
+            }
+
+            // Filtres de prix
+            if (minPrice.HasValue)
+            {
+                productsQuery = productsQuery.Where(p => p.Price >= minPrice.Value);
+            }
+            if (maxPrice.HasValue)
+            {
+                productsQuery = productsQuery.Where(p => p.Price <= maxPrice.Value);
+            }
+
+            // Tri
+            productsQuery = sort switch
+            {
+                "price_asc" => productsQuery.OrderBy(p => p.Price),
+                "price_desc" => productsQuery.OrderByDescending(p => p.Price),
+                "name_asc" => productsQuery.OrderBy(p => p.Name),
+                "name_desc" => productsQuery.OrderByDescending(p => p.Name),
+                _ => productsQuery.OrderBy(p => p.ProductId)
+            };
+            
+            // Pagination
+            var totalProducts = productsQuery.Count();
+            var products = productsQuery.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalProducts / pageSize);
+            ViewBag.CurrentPage = page;
+            ViewBag.CategoryId = categoryId;  // Passer categoryId à la vue
+            ViewBag.Search = search;
+            ViewBag.MinPrice = minPrice;
+            ViewBag.MaxPrice = maxPrice;
+            ViewBag.Sort = sort;
+            ViewBag.TotalResults = totalProducts;
+            
+            return View(products);
+        }
+
+        // GET: ProductController/Details/5
+        public async Task<ActionResult> Details(int id)
+        {
+            var product = ProductRepository.GetById(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            var categories = CategRepository.GetAll();
+            ViewData["Categories"] = categories;
+
+            // Charger les variantes du produit
+            var variants = VariantRepository.GetByProductId(id);
+            ViewBag.Variants = variants;
+            
+            // Extraire les tailles et couleurs uniques
+            var sizes = variants.Where(v => !string.IsNullOrEmpty(v.Size)).Select(v => v.Size).Distinct().ToList();
+            var colors = variants.Where(v => !string.IsNullOrEmpty(v.Color)).Select(v => v.Color).Distinct().ToList();
+            ViewBag.Sizes = sizes;
+            ViewBag.Colors = colors;
+
+            // Charger les avis approuvés
+            var approvedReviews = ReviewRepository.GetByProductId(id, onlyApproved: true);
+            var reviews = approvedReviews.ToList();
+
+            // Statistiques
+            ViewBag.AverageRating = ReviewRepository.GetAverageRating(id);
+            ViewBag.ReviewCount = ReviewRepository.GetReviewCount(id);
+
+            // Préparer un dictionnaire userId -> username
+            var reviewerNames = new Dictionary<string, string>();
+
+            // Vérifier si l'utilisateur a déjà laissé un avis et ajouter son avis en attente (si existant)
+            if (User.Identity.IsAuthenticated)
+            {
+                var user = await userManager.GetUserAsync(User);
+                if (user != null)
+                {
+                    ViewBag.HasReviewed = ReviewRepository.HasUserReviewedProduct(id, user.Id);
+                    ViewBag.UserId = user.Id;
+
+                    // Récupérer les avis non approuvés de cet utilisateur pour ce produit (afin qu'il voie son propre avis)
+                    var pendingReviews = ReviewRepository.GetByProductId(id, onlyApproved: false)
+                        .Where(r => !r.IsApproved && r.UserId == user.Id)
+                        .ToList();
+
+                    foreach (var pr in pendingReviews)
+                    {
+                        if (!reviews.Any(r => r.ReviewId == pr.ReviewId))
+                        {
+                            reviews.Insert(0, pr); // afficher en haut
+                        }
+                    }
+                }
+            }
+
+            // Charger les noms d'utilisateur pour tous les auteurs d'avis (optimisé: distinct)
+            var userIds = reviews.Select(r => r.UserId).Where(idstr => !string.IsNullOrEmpty(idstr)).Distinct().ToList();
+            foreach (var uid in userIds)
+            {
+                try
+                {
+                    var identityUser = await userManager.FindByIdAsync(uid);
+                    reviewerNames[uid] = identityUser?.UserName ?? uid;
+                }
+                catch
+                {
+                    reviewerNames[uid] = uid;
+                }
+            }
+
+            ViewBag.ReviewerNames = reviewerNames;
+            ViewBag.Reviews = reviews;
+
+            return View(product);
+        }
+
+        // POST: ProductController/AddReview
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> AddReview(int productId, int rating, string? comment)
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var product = ProductRepository.GetById(productId);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Vérifier si l'utilisateur a déjà laissé un avis
+            if (ReviewRepository.HasUserReviewedProduct(productId, user.Id))
+            {
+                TempData["ReviewError"] = "Vous avez déjà laissé un avis pour ce produit.";
+                return RedirectToAction("Details", new { id = productId });
+            }
+
+            if (rating < 1 || rating > 5)
+            {
+                TempData["ReviewError"] = "La note doit être entre 1 et 5.";
+                return RedirectToAction("Details", new { id = productId });
+            }
+
+            var review = new Review
+            {
+                ProductId = productId,
+                UserId = user.Id,
+                Rating = rating,
+                Comment = comment,
+                IsApproved = false // Nécessite modération
+            };
+
+            ReviewRepository.Add(review);
+            TempData["ReviewSuccess"] = "Votre avis a été soumis et sera publié après modération.";
+            return RedirectToAction("Details", new { id = productId });
+        }
+
+        // GET: ProductController/Create
+        [Authorize(Roles = "Admin")]
+        public ActionResult Create()
+        {
+            var categories = CategRepository.GetAll();           // ✅ Charger les catégories
+            ViewData["Categories"] = categories;
+
+            ViewBag.CategoryId = new SelectList(categories, "CategoryId", "CategoryName");
+            return View();
+        }
+
+        // POST: ProductController/Create
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create(CreateViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                string uniqueFileName = null;
+
+                if (model.ImagePath != null)
+                {
+                    string uploadsFolder = Path.Combine(hostingEnvironment.WebRootPath, "images");
+                    uniqueFileName = Guid.NewGuid().ToString() + "_" + model.ImagePath.FileName;
+                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        model.ImagePath.CopyTo(fileStream);
+                    }
+                }
+
+                Product newProduct = new Product
+                {
+                    Name = model.Name,
+                    Price = model.Price,
+                    QteStock = model.QteStock,
+                    CategoryId = model.CategoryId,
+                    Image = uniqueFileName
+                };
+
+                ProductRepository.Add(newProduct);
+                return RedirectToAction("Details", new { id = newProduct.ProductId });
+            }
+
+            ViewBag.CategoryId = new SelectList(
+                CategRepository.GetAll(),
+                "CategoryId",
+                "CategoryName",
+                model.CategoryId);
+
+            var categories = CategRepository.GetAll();           // ✅ Charger les catégories
+            ViewData["Categories"] = categories;
+
+            return View(model);
+        }
+
+        // GET: ProductController/Edit/5
+        [Authorize(Roles = "Admin")]
+        public ActionResult Edit(int id)
+        {
+            var categories = CategRepository.GetAll();           // ✅ Charger les catégories
+            ViewData["Categories"] = categories;
+
+            ViewBag.CategoryId = new SelectList(categories, "CategoryId", "CategoryName");
+            Product product = ProductRepository.GetById(id);
+            var productEditViewModel = new EditViewModel
+            {
+                ProductId = product.ProductId,
+                Name = product.Name,
+                Price = product.Price,
+                QteStock = product.QteStock,
+                CategoryId = product.CategoryId,
+                ExistingImagePath = product.Image ?? string.Empty,
+                Category = product.Category ?? new Category(),
+                ImagePath = null!
+            };
+            return View(productEditViewModel);
+        }
+
+        // POST: ProductController/Edit/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit(EditViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                Product product = ProductRepository.GetById(model.ProductId);
+                product.Name = model.Name;
+                product.Price = model.Price;
+                product.QteStock = model.QteStock;
+                product.CategoryId = model.CategoryId;
+
+                if (model.ImagePath != null)
+                {
+                    if (model.ExistingImagePath != null)
+                    {
+                        string filePath = Path.Combine(hostingEnvironment.WebRootPath, "images", model.ExistingImagePath);
+                        System.IO.File.Delete(filePath);
+                    }
+                    product.Image = ProcessUploadedFile(model);
+                }
+
+                Product updatedProduct = ProductRepository.Update(product);
+                if (updatedProduct != null)
+                    return RedirectToAction("Index");
+                else
+                    return NotFound();
+            }
+
+            ViewBag.CategoryId = new SelectList(CategRepository.GetAll(), "CategoryId", "CategoryName");
+            var categories = CategRepository.GetAll();           // ✅ Charger les catégories
+            ViewData["Categories"] = categories;
+
+            return View(model);
+        }
+
+        [NonAction]
+        private string ProcessUploadedFile(EditViewModel model)
+        {
+            string uniqueFileName = null;
+            if (model.ImagePath != null)
+            {
+                string uploadsFolder = Path.Combine(hostingEnvironment.WebRootPath, "images");
+                uniqueFileName = Guid.NewGuid().ToString() + "_" + model.ImagePath.FileName;
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    model.ImagePath.CopyTo(fileStream);
+                }
+            }
+            return uniqueFileName;
+        }
+
+        // GET: ProductController/Delete/5
+        [Authorize(Roles = "Admin")]
+        public ActionResult Delete(int id)
+        {
+            var categories = CategRepository.GetAll();           // ✅ Charger les catégories
+            ViewData["Categories"] = categories;
+
+            var product = ProductRepository.GetById(id);
+            if (product == null) return NotFound();
+            return View(product);
+        }
+
+        // POST: ProductController/Delete/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public ActionResult Delete(int id, IFormCollection collection)
+        {
+            ProductRepository.Delete(id);
+            return RedirectToAction(nameof(Index));
+        }
+
+        public ActionResult Search(string val)
+        {
+            var result = ProductRepository.FindByName(val);
+            var categories = CategRepository.GetAll();           // ✅ Charger les catégories
+            ViewData["Categories"] = categories;
+
+            // Conserver l'expérience actuelle, mais rediriger vers Index avec search
+            return RedirectToAction("Index", new { search = val });
+        }
+    }
+}

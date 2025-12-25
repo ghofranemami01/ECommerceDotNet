@@ -1,0 +1,62 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebApplication2.Models.Repositories;
+
+namespace WebApplication2.Controllers
+{
+    [Authorize(Roles = "Admin,Manager")]
+    public class OrderController : Controller
+    {
+        private readonly IOrderRepository _orderRepository;
+
+        public OrderController(IOrderRepository orderRepository)
+        {
+            _orderRepository = orderRepository;
+        }
+
+        // GET: Order
+        public ActionResult Index()
+        {
+            var orders = _orderRepository.GetAll();
+            return View(orders);
+        }
+
+        // GET: Order/Details/5
+        public ActionResult Details(int id)
+        {
+            var order = _orderRepository.GetById(id);
+            if (order == null)
+                return NotFound();
+            return View(order);
+        }
+
+        // POST: Order/UpdateStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateStatus(int id, string orderStatus)
+        {
+            var order = _orderRepository.GetById(id);
+            if (order == null)
+                return NotFound();
+
+            order.OrderStatus = orderStatus;
+            
+            if (orderStatus == "Shipped" && !order.ShippedDate.HasValue)
+            {
+                order.ShippedDate = DateTime.Now;
+            }
+            else if (orderStatus == "Delivered" && !order.DeliveredDate.HasValue)
+            {
+                order.DeliveredDate = DateTime.Now;
+                order.PaymentStatus = "Paid";
+            }
+
+            _orderRepository.Update(order);
+            TempData["SuccessMessage"] = "Statut de la commande mis à jour avec succès.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+}
+
+
+

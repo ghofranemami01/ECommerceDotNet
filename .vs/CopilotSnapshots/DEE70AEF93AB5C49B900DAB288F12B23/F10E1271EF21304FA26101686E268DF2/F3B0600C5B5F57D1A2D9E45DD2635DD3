@@ -1,0 +1,142 @@
+﻿@model WebApplication2.Models.Order
+@{
+    ViewData["Title"] = "Détails de la commande #" + Model.Id;
+}
+
+<h2 class="mb-4">Détails de la commande #@Model.Id</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Articles commandés</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>Prix unitaire</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    @item.ProductName
+                                    @if (!string.IsNullOrEmpty(item.VariantInfo))
+                                    {
+                                        <br /><small class="text-muted">@item.VariantInfo</small>
+                                    }
+                                </td>
+                                <td>@item.Quantity</td>
+                                <td>@item.Price.ToString("C")</td>
+                                <td>@((item.Price * item.Quantity).ToString("C"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3">Total</th>
+                            <th>@Model.TotalAmount.ToString("C")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Informations client</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Nom:</strong> @Model.CustomerName</p>
+                <p><strong>Email:</strong> @Model.Email</p>
+                <p><strong>Adresse:</strong> @Model.Address</p>
+                @if (!string.IsNullOrEmpty(Model.City))
+                {
+                    <p><strong>Ville:</strong> @Model.City</p>
+                }
+                @if (!string.IsNullOrEmpty(Model.PostalCode))
+                {
+                    <p><strong>Code postal:</strong> @Model.PostalCode</p>
+                }
+                @if (!string.IsNullOrEmpty(Model.Country))
+                {
+                    <p><strong>Pays:</strong> @Model.Country</p>
+                }
+                @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                {
+                    <p><strong>Téléphone:</strong> @Model.PhoneNumber</p>
+                }
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Statut de la commande</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Date de commande:</strong> @Model.OrderDate.ToShortDateString()</p>
+                <p><strong>Statut:</strong> 
+                    <span class="badge bg-@(Model.OrderStatus == "Delivered" ? "success" : Model.OrderStatus == "Shipped" ? "info" : "warning")">
+                        @Model.OrderStatus
+                    </span>
+                </p>
+                <p><strong>Paiement:</strong> 
+                    <span class="badge bg-@(Model.PaymentStatus == "Paid" ? "success" : "warning")">
+                        @Model.PaymentStatus
+                    </span>
+                </p>
+                @if (Model.ShippedDate.HasValue)
+                {
+                    <p><strong>Expédiée le:</strong> @Model.ShippedDate.Value.ToShortDateString()</p>
+                }
+                @if (Model.DeliveredDate.HasValue)
+                {
+                    <p><strong>Livrée le:</strong> @Model.DeliveredDate.Value.ToShortDateString()</p>
+                }
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Mettre à jour le statut</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="UpdateStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label class="form-label">Nouveau statut</label>
+                        <select name="orderStatus" class="form-select">
+                            <option value="Pending" selected="@(Model.OrderStatus == "Pending")">En attente</option>
+                            <option value="Paid" selected="@(Model.OrderStatus == "Paid")">Payé</option>
+                            <option value="Shipped" selected="@(Model.OrderStatus == "Shipped")">Expédié</option>
+                            <option value="Delivered" selected="@(Model.OrderStatus == "Delivered")">Livré</option>
+                            <option value="Cancelled" selected="@(Model.OrderStatus == "Cancelled")">Annulé</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Mettre à jour</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Index" class="btn btn-secondary">Retour à la liste</a>
+</div>
+
+
+

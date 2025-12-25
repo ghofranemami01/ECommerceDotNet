@@ -1,0 +1,391 @@
+﻿@model WebApplication2.Models.Product
+
+@{
+    ViewData["Title"] = Model.Name;
+ var photoPath = "~/images/" + (Model.Image ?? "noimage.jpg");
+    var averageRating = ViewBag.AverageRating as float? ?? 0f;
+    var reviewCount = ViewBag.ReviewCount as int? ?? 0;
+    var reviews = ViewBag.Reviews as IList<WebApplication2.Models.Review> ?? new List<WebApplication2.Models.Review>();
+    var hasReviewed = ViewBag.HasReviewed as bool? ?? false;
+    var currentUserId = ViewBag.UserId as string ?? string.Empty;
+}
+
+<div class="product-details">
+    <div class="row">
+        <div class="col-md-5">
+            <img src="@photoPath" asp-append-version="true" class="img-fluid rounded" alt="@Model.Name" />
+        </div>
+        <div class="col-md-7">
+            <h1>@Model.Name</h1>
+            <p class="text-muted">
+                <span class="badge bg-secondary">@(Model.Category?.CategoryName ?? "Aucune catégorie")</span>
+            </p>
+            
+            <!-- Note moyenne -->
+            @if (reviewCount > 0)
+            {
+                <div class="mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rating-display">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= averageRating)
+                                {
+                                    <i class="fas fa-star text-warning"></i>
+                                }
+                                else if (i - 0.5 <= averageRating)
+                                {
+                                    <i class="fas fa-star-half-alt text-warning"></i>
+                                }
+                                else
+                                {
+                                    <i class="far fa-star text-warning"></i>
+                                }
+                            }
+                        </div>
+                        <span class="ms-2">@averageRating.ToString("F1") / 5.0</span>
+                        <span class="text-muted ms-2">(@reviewCount avis)</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <span class="text-muted">Aucun avis pour le moment</span>
+                </div>
+            }
+            
+            <div class="price-section mb-3">
+                <h3 class="text-primary" id="productPrice">@Model.Price.ToString("C")</h3>
+                <p class="text-muted" id="stockInfo">Stock: @Model.QteStock unités</p>
+            </div>
+            
+            @{
+                var variants = ViewBag.Variants as IList<WebApplication2.Models.ProductVariant> ?? new List<WebApplication2.Models.ProductVariant>();
+                var sizes = ViewBag.Sizes as IList<string> ?? new List<string>();
+                var colors = ViewBag.Colors as IList<string> ?? new List<string>();
+            }
+            
+            @if (variants.Any())
+            {
+                <div class="mb-3">
+                    @if (sizes.Any())
+                    {
+                        <div class="mb-2">
+                            <label class="form-label">Taille</label>
+                            <select class="form-select" id="sizeSelect">
+                                <option value="">Sélectionner une taille</option>
+                                @foreach (var size in sizes)
+                                {
+                                    <option value="@size">@size</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    
+                    @if (colors.Any())
+                    {
+                        <div class="mb-2">
+                            <label class="form-label">Couleur</label>
+                            <select class="form-select" id="colorSelect">
+                                <option value="">Sélectionner une couleur</option>
+                                @foreach (var color in colors)
+                                {
+                                    <option value="@color">@color</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    
+                    <input type="hidden" id="selectedVariantId" />
+                </div>
+            }
+            
+            <div class="d-grid gap-2">
+                <button type="button" id="addToCartBtn" class="btn btn-success btn-lg" 
+                        onclick="addToCart()">
+                    <i class="fas fa-shopping-cart"></i> Ajouter au Panier
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <hr class="my-5" />
+    
+    <!-- Section Avis -->
+    <div class="reviews-section">
+        <h2>Avis clients</h2>
+        
+        @if (TempData["ReviewSuccess"] != null)
+        {
+            <div class="alert alert-success">@TempData["ReviewSuccess"]</div>
+        }
+        @if (TempData["ReviewError"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ReviewError"]</div>
+        }
+        
+        <!-- Formulaire d'avis -->
+        @if (User.Identity.IsAuthenticated && !hasReviewed)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Laisser un avis</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-action="AddReview">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="productId" value="@Model.ProductId" />
+                        <div class="mb-3">
+                            <label class="form-label">Note (1-5 étoiles)</label>
+                            <div class="rating-input" id="ratingContainer">
+                                @for (int i = 5; i >= 1; i--)
+                                {
+                                    <input type="radio" name="rating" value="@i" id="rating@i" required />
+                                    <label for="rating@i" class="star-label" data-rating="@i">
+                                        <i class="far fa-star"></i>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Commentaire (optionnel)</label>
+                            <textarea name="comment" class="form-control" rows="4" maxlength="1000"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Envoyer mon avis</button>
+                    </form>
+                </div>
+            </div>
+        }
+        else if (User.Identity.IsAuthenticated && hasReviewed)
+        {
+            <div class="alert alert-info">Vous avez déjà laissé un avis pour ce produit.</div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <a asp-controller="Account" asp-action="Login">Connectez-vous</a> pour laisser un avis.
+            </div>
+        }
+        
+        <!-- Liste des avis -->
+        @if (reviews.Any())
+        {
+            <div class="reviews-list">
+                @foreach (var review in reviews)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+<div>
+                                    <strong>@(review.UserId == currentUserId ? "Vous" : review.UserId)</strong>
+                                    <small class="text-muted ms-2">@review.CreatedAt.ToString("dd/MM/yyyy")</small>
+                                    @if (!review.IsApproved)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-2">En attente de modération</span>
+                                    }
+                                </div>
+                                <div class="rating-display">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= review.Rating)
+                                        {
+                                            <i class="fas fa-star text-warning"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="far fa-star text-warning"></i>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(review.Comment))
+                            {
+                                <p class="mb-0">@review.Comment</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">Aucun avis pour le moment. Soyez le premier à en laisser un !</p>
+        }
+        </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour à la liste
+    </a>
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model?.ProductId" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Modifier
+        </a>
+    }
+</div>
+
+<style>
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.rating-input input[type="radio"] {
+    display: none;
+}
+
+.rating-input label {
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #ddd;
+    transition: color 0.2s;
+}
+
+.rating-input label:hover,
+.rating-input label:hover ~ label {
+    color: #ffc107;
+}
+
+.rating-input input[type="radio"]:checked ~ label,
+.rating-input label.selected,
+.rating-input label.selected ~ label {
+    color: #ffc107;
+}
+
+.rating-display {
+    font-size: 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ratingContainer = document.getElementById('ratingContainer');
+    if (!ratingContainer) return;
+    
+    const starLabels = ratingContainer.querySelectorAll('.star-label');
+    const radioInputs = ratingContainer.querySelectorAll('input[type="radio"]');
+    
+    // Gérer le clic sur les étoiles
+    starLabels.forEach(function(label) {
+        label.addEventListener('click', function(e) {
+            // retirer e.preventDefault() pour permettre le comportement natif du label
+            const rating = parseInt(this.getAttribute('data-rating'));
+            
+            // Mettre à jour le radio button
+            const radio = document.getElementById('rating' + rating);
+            if (radio) {
+                radio.checked = true;
+            }
+            
+            // Mettre à jour l'affichage visuel
+            starLabels.forEach(function(lbl, index) {
+                const lblRating = parseInt(lbl.getAttribute('data-rating'));
+                if (lblRating <= rating) {
+                    lbl.classList.add('selected');
+                    const icon = lbl.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                    }
+                } else {
+                    lbl.classList.remove('selected');
+                    const icon = lbl.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                    }
+                }
+            });
+        });
+    });
+    
+    // Gérer le survol
+    starLabels.forEach(function(label) {
+        label.addEventListener('mouseenter', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            starLabels.forEach(function(lbl) {
+                const lblRating = parseInt(lbl.getAttribute('data-rating'));
+                if (lblRating <= rating) {
+                    lbl.style.color = '#ffc107';
+                } else {
+                    lbl.style.color = '#ddd';
+                }
+            });
+        });
+    });
+    
+    ratingContainer.addEventListener('mouseleave', function() {
+        const checkedRadio = ratingContainer.querySelector('input[type="radio"]:checked');
+        if (checkedRadio) {
+            const rating = parseInt(checkedRadio.value);
+            starLabels.forEach(function(lbl) {
+                const lblRating = parseInt(lbl.getAttribute('data-rating'));
+                if (lblRating <= rating) {
+                    lbl.style.color = '#ffc107';
+                } else {
+                    lbl.style.color = '#ddd';
+                }
+            });
+        } else {
+            starLabels.forEach(function(lbl) {
+                lbl.style.color = '#ddd';
+            });
+        }
+    });
+    
+    // Gestion des variantes
+    const sizeSelect = document.getElementById('sizeSelect');
+    const colorSelect = document.getElementById('colorSelect');
+    const selectedVariantId = document.getElementById('selectedVariantId');
+    const productPrice = document.getElementById('productPrice');
+    const stockInfo = document.getElementById('stockInfo');
+    const variants = @Html.Raw(Json.Serialize(variants));
+    const basePrice = @Model.Price;
+    
+    function updateVariant() {
+        const selectedSize = sizeSelect ? sizeSelect.value : '';
+        const selectedColor = colorSelect ? colorSelect.value : '';
+        
+        const variant = variants.find(v => 
+            (v.size === selectedSize || (!selectedSize && !v.size)) &&
+            (v.color === selectedColor || (!selectedColor && !v.color))
+        );
+        
+        if (variant) {
+            selectedVariantId.value = variant.productVariantId;
+            const totalPrice = basePrice + (variant.additionalPrice || 0);
+            productPrice.textContent = totalPrice.toFixed(2) + ' DT';
+            stockInfo.textContent = 'Stock: ' + variant.stock + ' unités';
+        } else {
+            selectedVariantId.value = '';
+            productPrice.textContent = basePrice.toFixed(2) + ' DT';
+            stockInfo.textContent = 'Stock: @Model.QteStock unités';
+        }
+    }
+    
+    if (sizeSelect) sizeSelect.addEventListener('change', updateVariant);
+    if (colorSelect) colorSelect.addEventListener('change', updateVariant);
+    
+    function addToCart() {
+        const variantId = selectedVariantId.value;
+        const productId = @Model.ProductId;
+        
+        if (variants.length > 0 && !variantId) {
+            alert('Veuillez sélectionner une variante (taille/couleur)');
+            return;
+        }
+        
+        let url = '/Panier/AddProduct?id=' + productId;
+        if (variantId) {
+            url += '&variantId=' + variantId;
+        }
+        
+        window.location.href = url;
+    }
+});
+</script>

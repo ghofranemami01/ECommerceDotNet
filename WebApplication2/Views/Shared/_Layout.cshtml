@@ -1,0 +1,184 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Memiette</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- ====================== NAVBAR ====================== -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+        <div class="container">
+            <!-- LOGO -->
+            <a class="navbar-brand fw-bold text-primary" asp-controller="Home" asp-action="Index">
+                MEMIETTE
+            </a>
+
+            <!-- TOGGLER -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-between" id="mainNavbar">
+
+                <!-- GAUCHE : Navigation principale -->
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Product" asp-action="Index">
+                                <i class="fas fa-store me-1"></i> Produits
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Category" asp-action="Index">
+                                <i class="fas fa-tags me-1"></i> Catégories
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Product" asp-action="Index">
+                                <i class="fas fa-store me-1"></i> Produits
+                            </a>
+                        </li>
+                    }
+
+                </ul>
+
+                <!-- CENTRE : Recherche -->
+                <form class="d-flex mx-3 flex-grow-1" asp-controller="Product" asp-action="Search">
+                    <input class="form-control me-2" type="search" name="val" placeholder="Rechercher un produit">
+                    <button class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+
+                <!-- DROITE : Actions & Compte -->
+                <div class="d-flex align-items-center gap-2">
+
+                    <!-- Toggle menu latéral (optionnel pour admin) -->
+                    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                    {
+                        <button class="btn btn-outline-secondary" id="toggleMenu">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    }
+
+                    <!-- Panier / Commandes -->
+                    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                    {
+                        <a class="btn btn-outline-success" asp-controller="Order" asp-action="AdminOrders">
+                            <i class="fas fa-shopping-cart"></i> Commandes
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-outline-success" asp-controller="Panier" asp-action="Index">
+                            <i class="fas fa-shopping-cart"></i> Panier
+                        </a>
+                    }
+
+                    <!-- Authentification / Profil -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            @if (SignInManager.IsSignedIn(User))
+                            {
+                                <li><h6 class="dropdown-header">Bonjour @User.Identity.Name</h6></li>
+                                <li><a class="dropdown-item" asp-controller="UserProfile" asp-action="Index"><i class="fas fa-id-card me-2"></i> Profil</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" asp-controller="Account" asp-action="Logout">
+                                        <button class="dropdown-item text-danger"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</button>
+                                    </form>
+                                </li>
+                            }
+                            else
+                            {
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt me-2"></i> Login</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Register"><i class="fas fa-user-plus me-2"></i> Register</a></li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </nav>
+
+    <!-- ====================== CORPS PRINCIPAL ====================== -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar admin -->
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="col-md-2" id="sidebar" style="display: none;">
+                    <div class="sidebar-content">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <a asp-controller="Product" asp-action="Index"><i class="fas fa-store me-2"></i> Produits</a>
+                            </li>
+                            <li class="list-group-item">
+                                <a asp-controller="Category" asp-action="Index"><i class="fas fa-tags me-2"></i> Catégories</a>
+                            </li>
+                            <li class="list-group-item">
+                                <a asp-controller="Order" asp-action="AdminOrders"><i class="fas fa-shopping-cart me-2"></i> Commandes</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-10" id="mainContent">
+                    <main role="main" class="pb-3">
+                        <div class="content-wrapper">
+                            @RenderBody()
+                        </div>
+                    </main>
+                </div>
+            }
+            else
+            {
+                <div class="col-md-12" id="mainContent">
+                    <main role="main" class="pb-3">
+                        <div class="content-wrapper">
+                            @RenderBody()
+                        </div>
+                    </main>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ====================== FOOTER ====================== -->
+    <footer class="border-top footer text-muted py-3 mt-4">
+        <div class="container text-center">
+            © 2025 - Memiette - <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+
+    <!-- ====================== SCRIPTS ====================== -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Toggle menu latéral
+        $("#toggleMenu").click(function () {
+            $("#sidebar").toggle();
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

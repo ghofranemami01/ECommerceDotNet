@@ -1,0 +1,65 @@
+﻿@model WebApplication2.ViewModels.EditViewModel
+@{
+    ViewData["Title"] = "Modifier le produit";
+    var photoPath = Url.Content("~/images/" + (Model.ExistingImagePath ?? "noimage.jpg"));
+}
+
+<div class="container my-4">
+    <h1>@ViewData["Title"]</h1>
+    <hr />
+    <form asp-action="Edit" asp-controller="Product" enctype="multipart/form-data" method="post">
+        <input type="hidden" asp-for="ProductId" />
+        <input type="hidden" asp-for="ExistingImagePath" />
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Price" class="form-label"></label>
+            <input asp-for="Price" class="form-control" />
+            <span asp-validation-for="Price" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="QteStock" class="form-label"></label>
+            <input asp-for="QteStock" class="form-control" />
+            <span asp-validation-for="QteStock" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="CategoryId" class="form-label"></label>
+            <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId"></select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ImagePath" class="form-label"></label>
+            <input asp-for="ImagePath" type="file" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Image actuelle :</label><br />
+            <img src="@photoPath" height="100" width="100" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Mettre à jour</button>
+        <a asp-action="Index" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelector('input[type="file"]').addEventListener('change', function (e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.querySelector('img').src = e.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+    </script>
+}

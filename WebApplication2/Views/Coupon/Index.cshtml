@@ -1,0 +1,85 @@
+@model IEnumerable<WebApplication2.Models.Coupon>
+
+@{
+    ViewData["Title"] = "Gestion des Coupons";
+}
+
+<h1>Gestion des Coupons</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Créer un nouveau coupon
+    </a>
+</p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Valeur</th>
+            <th>Commande min</th>
+            <th>Dates</th>
+            <th>Utilisations</th>
+            <th>Statut</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td><strong>@item.Code</strong></td>
+                <td>@(item.Type == "Percent" ? "Pourcentage" : "Montant fixe")</td>
+                <td>@(item.Type == "Percent" ? item.Value + "%" : item.Value.ToString("C"))</td>
+                <td>@(item.MinOrder?.ToString("C") ?? "Aucun")</td>
+                <td>
+                    @if (item.StartDate.HasValue || item.EndDate.HasValue)
+                    {
+                        <small>
+                            @(item.StartDate?.ToString("dd/MM/yyyy") ?? "Début") - 
+                            @(item.EndDate?.ToString("dd/MM/yyyy") ?? "Fin")
+                        </small>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Sans limite</span>
+                    }
+                </td>
+                <td>
+                    @item.CurrentUse
+                    @if (item.MaxTotalUse.HasValue)
+                    {
+                        <span class="text-muted">/ @item.MaxTotalUse</span>
+                    }
+                </td>
+                <td>
+                    @if (item.IsActive)
+                    {
+                        <span class="badge bg-success">Actif</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactif</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.CouponId" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@item.CouponId" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@item.CouponId" class="btn btn-sm btn-danger">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+

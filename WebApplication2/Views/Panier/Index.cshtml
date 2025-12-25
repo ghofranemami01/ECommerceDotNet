@@ -1,0 +1,157 @@
+@{
+    ViewBag.Title = "Mon Panier";
+}
+
+<div class="cart-header mb-4">
+    <h1 class="text-center mb-3">
+        <i class="fas fa-shopping-cart"></i> Mon Panier
+    </h1>
+    <p class="text-center text-muted">Gérez vos articles et passez commande</p>
+</div>
+
+@if (ViewBag.Liste.Count > 0)
+{
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="cart-items">
+                @foreach (var item in ViewBag.Liste)
+                {
+                    <div class="cart-item" id="row-@item.Prod.ProductId">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <img src="~/images/@item.Prod.Image" class="img-fluid rounded" alt="@item.Prod.Name" style="max-height: 150px; object-fit: cover;">
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="mb-2">@item.Prod.Name</h5>
+                                @if (item.Variant != null)
+                                {
+                                    <p class="text-muted mb-1">
+                                        @if (!string.IsNullOrEmpty(item.Variant.Size))
+                                        {
+                                            <span class="badge bg-info">Taille: @item.Variant.Size</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Variant.Color))
+                                        {
+                                            <span class="badge bg-info">Couleur: @item.Variant.Color</span>
+                                        }
+                                    </p>
+                                }
+                                <p class="text-muted mb-2">
+                                    <span class="badge bg-secondary">@item.Prod.Category.CategoryName</span>
+                                </p>
+                                <p class="price mb-0">@item.UnitPrice.ToString("C")</p>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="quantity-controls mb-3">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm MinProducts" data-id="@item.Prod.ProductId">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <span class="btn btn-outline-primary disabled" id="quantite_@item.Prod.ProductId">@item.quantite</span>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm PlusProducts" data-id="@item.Prod.ProductId">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <p class="mb-2"><strong>Total: <span id="total_@item.Prod.ProductId">@item.TotalPrice.ToString("C")</span></strong></p>
+                                    <button type="button" class="btn btn-danger btn-sm RemoveLink" data-id="@item.Prod.ProductId">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="cart-summary">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-calculator"></i> Résumé de la commande</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Code promo -->
+                        <div class="mb-3">
+                            @if (ViewBag.AppliedCoupon != null)
+                            {
+                                <div class="alert alert-success">
+                                    <strong>Code appliqué:</strong> @ViewBag.AppliedCoupon.Code
+                                    <form method="post" asp-action="RemoveCoupon" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-2">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <form method="post" asp-action="ApplyCoupon" class="d-flex gap-2">
+                                    <input type="text" name="couponCode" class="form-control form-control-sm" placeholder="Code promo" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Appliquer</button>
+                                </form>
+                            }
+                            @if (TempData["CouponError"] != null)
+                            {
+                                <div class="alert alert-danger mt-2 mb-0">@TempData["CouponError"]</div>
+                            }
+                            @if (TempData["CouponSuccess"] != null)
+                            {
+                                <div class="alert alert-success mt-2 mb-0">@TempData["CouponSuccess"]</div>
+                            }
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>Sous-total:</span>
+                            <span id="subtotal">@ViewBag.SubTotal.ToString("C")</span>
+                        </div>
+                        @if (ViewBag.Discount > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-3 text-success">
+                                <span>Réduction:</span>
+                                <span>-@ViewBag.Discount.ToString("C")</span>
+                            </div>
+                        }
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>Livraison:</span>
+                            <span class="text-success">Gratuite</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <strong id="totalapayer">@ViewBag.Total.ToString("C")</strong>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="~/Panier/Checkout" class="btn btn-success btn-lg">
+                                <i class="fas fa-credit-card"></i> Passer la commande
+                            </a>
+                            <a href="~/Product/Index" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left"></i> Continuer mes achats
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="empty-cart text-center py-5">
+        <div class="empty-cart-icon mb-4">
+            <i class="fas fa-shopping-cart" style="font-size: 5rem; color: #ccc;"></i>
+        </div>
+        <h3 class="text-muted mb-3">Votre panier est vide !</h3>
+        <p class="text-muted mb-4">Découvrez nos produits et ajoutez-les à votre panier</p>
+        <a href="~/Product/Index" class="btn btn-primary btn-lg">
+            <i class="fas fa-store"></i> Voir nos produits
+        </a>
+    </div>
+}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+<script src="~/js/Monscript.js" type="text/javascript"></script>
